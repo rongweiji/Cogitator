@@ -1,7 +1,7 @@
 # Cogitator
 
 ### One-liner
-Proactive macOS co-pilot that sees your screen, OCRs it in ~0.5s, remembers your day with embeddings, and replies via XAI in ~3s—so you get help without asking.
+Constant thinking machine on your mac device, it see you see, say you want to say, faster than faster. 
 
 <img src="playstore.png" alt="Cogitator icon" width="180" />
 
