@@ -27,7 +27,7 @@ https://github.com/user-attachments/assets/74d13314-295e-4697-8cbb-784430becc2e
 Manual prompting wastes time. Cogitator auto-collects context, anticipates needs, and keeps you focused on the actual task.
 
 ### Tech highlights
-- OCR-first capture to turn visuals into text, slashing latency and compute vs. raw images.
+- OCR-first capture to turn visuals into text, slashing latency and compute 0.5s ocr vs. raw images.
 - Embedding-backed day-long memory for semantic recall of what you saw or did earlier.
 - Low-latency XAI pipeline tuned for sub-3s end-to-end responses.
 
