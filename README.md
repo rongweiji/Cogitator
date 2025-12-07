@@ -9,6 +9,14 @@ https://github.com/user-attachments/assets/6b06956a-75c1-4ace-9fd3-b8eecd5f654c
 
 
 
+https://github.com/user-attachments/assets/024003c1-c463-44de-8d8e-d5ce02720fe5
+
+
+
+https://github.com/user-attachments/assets/74d13314-295e-4697-8cbb-784430becc2e
+
+
+
 ### Why it matters
 Manual prompting wastes time. Cogitator auto-collects context, anticipates needs, and keeps you focused on the actual task.
 
