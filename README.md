@@ -3,6 +3,12 @@
 ### One-liner
 Proactive macOS co-pilot that sees your screen, OCRs it in ~0.5s, remembers your day with embeddings, and replies via XAI in ~3s—so you get help without asking.
 
+<img src="playstore.png" alt="Cogitator icon" width="180" />
+
+Mac App Store (coming soon)
+
+<img src="https://developer.apple.com/assets/elements/badges/download-on-the-app-store.svg" alt="Download on the Mac App Store" width="180" />
+
 
 
 https://github.com/user-attachments/assets/6b06956a-75c1-4ace-9fd3-b8eecd5f654c

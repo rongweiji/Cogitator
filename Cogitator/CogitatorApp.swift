@@ -26,7 +26,7 @@ struct CogitatorApp: App {
     var body: some Scene {
         WindowGroup {
             // Toggle between the production UI and the dev/test console here.
-             ProductCaptureView()
+            ProductCaptureView()
            // DevCaptureView()
         }
         .modelContainer(sharedModelContainer)
