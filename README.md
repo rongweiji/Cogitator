@@ -3,6 +3,12 @@
 ### One-liner
 Proactive macOS co-pilot that sees your screen, OCRs it in ~0.5s, remembers your day with embeddings, and replies via XAI in ~3s—so you get help without asking.
 
+
+
+https://github.com/user-attachments/assets/6b06956a-75c1-4ace-9fd3-b8eecd5f654c
+
+
+
 ### Why it matters
 Manual prompting wastes time. Cogitator auto-collects context, anticipates needs, and keeps you focused on the actual task.
 
