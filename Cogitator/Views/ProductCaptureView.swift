@@ -5,11 +5,12 @@
 
 import SwiftUI
 import SwiftData
+import AppKit
 
 struct ProductCaptureView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.colorScheme) private var colorScheme
-    @StateObject private var viewModel = CaptureViewModel()
+    @StateObject private var viewModel = CaptureViewModel(autoClearsRecords: false)
     @State private var hasTriggeredKeyCheck = false
 
     var body: some View {
@@ -18,6 +19,9 @@ struct ProductCaptureView: View {
         VStack(alignment: .leading, spacing: 32) {
             controlPanel
             predictionPanel
+                .onTapGesture(count: 2) {
+                    viewModel.requestPredictionFromRecentContext()
+                }
         }
         .padding(16)
         .frame(
@@ -36,6 +40,14 @@ struct ProductCaptureView: View {
                 hasTriggeredKeyCheck = true
                 Task { await runKeySanityCheck() }
             }
+            GlobalDoubleClickMonitor.shared.start { [weak viewModel] in
+                guard let viewModel else { return }
+                print("[Predictor] Global double-click detected.")
+                viewModel.requestPredictionFromRecentContext()
+            }
+        }
+        .onDisappear {
+            GlobalDoubleClickMonitor.shared.stop()
         }
     }
 
@@ -140,10 +152,33 @@ struct ProductCaptureView: View {
         }
     }
 
-    private func copyPrediction(_ text: String) {
-        NSPasteboard.general.clearContents()
-        NSPasteboard.general.setString(text, forType: .string)
+private func copyPrediction(_ text: String) {
+    NSPasteboard.general.clearContents()
+    NSPasteboard.general.setString(text, forType: .string)
+}
+
+private final class GlobalDoubleClickMonitor {
+    static let shared = GlobalDoubleClickMonitor()
+    private var monitor: Any?
+    private var handler: (() -> Void)?
+
+    func start(handler: @escaping () -> Void) {
+        stop()
+        self.handler = handler
+        monitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
+            guard event.clickCount == 2 else { return }
+            self?.handler?()
+        }
     }
+
+    func stop() {
+        if let monitor {
+            NSEvent.removeMonitor(monitor)
+            self.monitor = nil
+        }
+        handler = nil
+    }
+}
 }
 
 private struct RecordingButton: View {
