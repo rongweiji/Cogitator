@@ -29,20 +29,41 @@
 		CCCFDD792EE50D9500BC65BB /* CogitatorUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = CogitatorUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CCCFDDD72EE5579A00BC65BB /* Exceptions for "CogitatorTests" folder in "Cogitator" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CogitatorTests.swift,
+			);
+			target = CCCFDD5F2EE50D9400BC65BB /* Cogitator */;
+		};
+		CCCFDDD82EE5579A00BC65BB /* Exceptions for "CogitatorTests" folder in "CogitatorTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CogitatorTests.swift,
+			);
+			target = CCCFDD6E2EE50D9500BC65BB /* CogitatorTests */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		CCCFDD622EE50D9400BC65BB /* Cogitator */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = Cogitator;
 			sourceTree = "<group>";
 		};
-		CCCFDD722EE50D9500BC65BB /* CogitatorTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = CogitatorTests;
-			sourceTree = "<group>";
-		};
 		CCCFDD7C2EE50D9500BC65BB /* CogitatorUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = CogitatorUITests;
+			sourceTree = "<group>";
+		};
+		CCCFDDD52EE5579A00BC65BB /* CogitatorTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				CCCFDDD72EE5579A00BC65BB /* Exceptions for "CogitatorTests" folder in "Cogitator" target */,
+				CCCFDDD82EE5579A00BC65BB /* Exceptions for "CogitatorTests" folder in "CogitatorTests" target */,
+			);
+			path = CogitatorTests;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -76,7 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				CCCFDD622EE50D9400BC65BB /* Cogitator */,
-				CCCFDD722EE50D9500BC65BB /* CogitatorTests */,
+				CCCFDDD52EE5579A00BC65BB /* CogitatorTests */,
 				CCCFDD7C2EE50D9500BC65BB /* CogitatorUITests */,
 				CCCFDD612EE50D9400BC65BB /* Products */,
 			);
@@ -109,6 +130,7 @@
 			);
 			fileSystemSynchronizedGroups = (
 				CCCFDD622EE50D9400BC65BB /* Cogitator */,
+				CCCFDDD52EE5579A00BC65BB /* CogitatorTests */,
 			);
 			name = Cogitator;
 			packageProductDependencies = (
@@ -129,9 +151,6 @@
 			);
 			dependencies = (
 				CCCFDD712EE50D9500BC65BB /* PBXTargetDependency */,
-			);
-			fileSystemSynchronizedGroups = (
-				CCCFDD722EE50D9500BC65BB /* CogitatorTests */,
 			);
 			name = CogitatorTests;
 			packageProductDependencies = (
