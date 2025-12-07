@@ -35,7 +35,7 @@ final class XAIService {
 
     func sendChat(
         prompt: String,
-        model: String = "grok-4",
+        model: String = "grok-4-1-fast-non-reasoning",
         stream: Bool = false,
         temperature: Double = 0.7
     ) async throws -> String {

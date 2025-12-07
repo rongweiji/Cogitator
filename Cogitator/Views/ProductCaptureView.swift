@@ -41,6 +41,46 @@ struct ProductCaptureView: View {
 
             Spacer()
 
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Next Input Prediction")
+                    .font(.headline)
+                if viewModel.isGeneratingPrediction {
+                    HStack(spacing: 12) {
+                        ProgressView()
+                        Text("Predicting next input…")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                } else if let prediction = viewModel.llmPrediction {
+                    Text(prediction)
+                        .font(.body)
+                        .multilineTextAlignment(.leading)
+                } else {
+                    Text("Stop the capture to let the assistant guess what you plan to type next.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                if let error = viewModel.llmError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+
+                if let duration = viewModel.lastPredictionDuration {
+                    Text("Last prediction generated in \(String(format: "%.2fs", duration)).")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
+                if !viewModel.isRecording && !viewModel.isGeneratingPrediction {
+                    Button("Regenerate Prediction") {
+                        viewModel.requestPrediction()
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+
             VStack(spacing: 4) {
                 Text("Capture Frequency")
                     .font(.footnote)
