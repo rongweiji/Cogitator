@@ -58,6 +58,7 @@ final class CaptureViewModel: ObservableObject {
         Task {
             await screenRecorder.stop()
             await generatePrediction()
+            await clearStoredRecords()
         }
     }
 
@@ -77,6 +78,18 @@ final class CaptureViewModel: ObservableObject {
             }
         } catch {
             logger.error("Failed to fetch records: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func clearStoredRecords() async {
+        guard let storage else { return }
+        do {
+            try storage.deleteAll()
+            await MainActor.run {
+                lastCapturedText = ""
+            }
+        } catch {
+            logger.error("Failed to auto-clear records: \(error.localizedDescription, privacy: .public)")
         }
     }
 
