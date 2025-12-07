@@ -1,23 +1,21 @@
 //
-//  ContentView.swift
+//  DevCaptureView.swift
 //  Cogitator
-//
-//  Created by Rongwei Ji on 12/6/25.
 //
 
 import SwiftUI
 import SwiftData
 
-struct ContentView: View {
+struct DevCaptureView: View {
     @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = CaptureViewModel()
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("Screen OCR Ingestion Pipeline")
+                Text("Screen OCR Ingestion (Dev)")
                     .font(.title2.bold())
-                Text("Continuously capture the built-in display, OCR each frame, and persist the text via SwiftData.")
+                Text("Capture the built-in display, OCR each frame, and persist the text via SwiftData.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
@@ -35,6 +33,7 @@ struct ContentView: View {
                 Stepper(value: $viewModel.fps, in: 0.5...5, step: 0.5) {
                     Text("Capture Frequency")
                 }
+                .disabled(viewModel.isRecording)
             }
 
             HStack(spacing: 16) {
@@ -74,6 +73,7 @@ struct ContentView: View {
             Spacer()
         }
         .padding(32)
+        .navigationTitle("Dev/Test Console")
         .onAppear {
             viewModel.configure(with: modelContext)
         }
@@ -81,6 +81,6 @@ struct ContentView: View {
 }
 
 #Preview {
-    ContentView()
+    DevCaptureView()
         .modelContainer(for: CaptureRecord.self, inMemory: true)
 }

@@ -25,7 +25,7 @@ struct CogitatorApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            EntryView()
         }
         .modelContainer(sharedModelContainer)
     }
