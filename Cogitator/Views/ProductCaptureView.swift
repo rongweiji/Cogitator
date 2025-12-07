@@ -73,12 +73,6 @@ struct ProductCaptureView: View {
                         .foregroundStyle(.secondary)
                 }
 
-                if !viewModel.isRecording && !viewModel.isGeneratingPrediction {
-                    Button("Regenerate Prediction") {
-                        viewModel.requestPrediction()
-                    }
-                    .buttonStyle(.bordered)
-                }
             }
 
             VStack(spacing: 4) {
