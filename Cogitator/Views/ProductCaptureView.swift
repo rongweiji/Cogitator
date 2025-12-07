@@ -13,13 +13,22 @@ struct ProductCaptureView: View {
     @State private var hasTriggeredKeyCheck = false
 
     var body: some View {
+        let hasPrediction = viewModel.llmPrediction != nil
+
         VStack(alignment: .leading, spacing: 32) {
             controlPanel
             predictionPanel
         }
-        .padding(32)
-        .frame(minWidth: 640, maxWidth: 720, maxHeight: .infinity, alignment: .topLeading)
-        .background(backgroundStyle)
+        .padding(16)
+        .frame(
+            minWidth: 520,
+            maxWidth: 600,
+            minHeight: hasPrediction ? 420 : 220,
+            maxHeight: .infinity,
+            alignment: .topLeading
+        )
+        .frame(maxHeight: .infinity, alignment: .topLeading)
+        .padding(.top, 0)
         .navigationTitle("Product Mode")
         .onAppear {
             viewModel.configure(with: modelContext)
@@ -44,36 +53,12 @@ struct ProductCaptureView: View {
         }
     }
 
-    private var labelForRecordingState: some View {
-        Group {
-            if viewModel.isRecording {
-                Image(systemName: "stop.fill")
-                    .font(.system(size: 36, weight: .bold))
-            } else {
-                Image(systemName: "play.fill")
-                    .font(.system(size: 36, weight: .bold))
-            }
-        }
-    }
-
-    private var buttonBackgroundColor: Color {
-        viewModel.isRecording ? .red : .accentColor
-    }
-
     private var controlPanel: some View {
         HStack(alignment: .center, spacing: 20) {
             Spacer()
 
-            Button(action: toggleRecording) {
-                labelForRecordingState
-                    .frame(width: 64, height: 64)
-                    .background(buttonBackgroundColor)
-                    .foregroundStyle(.white)
-                    .clipShape(Circle())
-                    .shadow(color: Color.black.opacity(0.15), radius: 6, y: 3)
-            }
-            .buttonStyle(.plain)
-            .help(viewModel.isRecording ? "Press to stop Cogitator." : "Press to start Cogitator.")
+            RecordingButton(isRecording: viewModel.isRecording, action: toggleRecording)
+                .help(viewModel.isRecording ? "Press to stop Cogitator." : "Press to start Cogitator.")
         }
     }
 
@@ -89,10 +74,29 @@ struct ProductCaptureView: View {
                         .foregroundStyle(.secondary)
                 }
             } else if let prediction = viewModel.llmPrediction {
-                Text(prediction)
-                    .font(.body)
-                    .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                ZStack(alignment: .topTrailing) {
+                    ScrollView {
+                        Text(prediction)
+                            .font(.body)
+                            .multilineTextAlignment(.leading)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .frame(maxHeight: .infinity)
+                    .layoutPriority(1)
+
+                    Button {
+                        copyPrediction(prediction)
+                    } label: {
+                        Image(systemName: "doc.on.doc")
+                            .symbolVariant(.fill)
+                            .font(.system(size: 14, weight: .semibold))
+                            .padding(8)
+                            .background(.thinMaterial, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Copy prediction to clipboard")
+                    .padding(8)
+                }
             } else {
                 Text("Stop the capture to let the assistant guess what you plan to type next.")
                     .font(.subheadline)
@@ -111,9 +115,8 @@ struct ProductCaptureView: View {
                     .foregroundStyle(.secondary)
             }
 
-            Spacer()
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
     }
 
     private func runKeySanityCheck() async {
@@ -135,6 +138,36 @@ struct ProductCaptureView: View {
         case .failure(let error):
             print("[XAI] Sanity check failed: \(error.localizedDescription)")
         }
+    }
+
+    private func copyPrediction(_ text: String) {
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(text, forType: .string)
+    }
+}
+
+private struct RecordingButton: View {
+    let isRecording: Bool
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            label
+                .font(.system(size: 26, weight: .semibold))
+                .foregroundStyle(isRecording ? Color.red : Color.accentColor)
+                .padding(12)
+                .background(
+                    Circle()
+                        .fill((isRecording ? Color.red : Color.accentColor).opacity(hovering ? 0.25 : 0.10))
+                )
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+    }
+
+    private var label: some View {
+        Image(systemName: isRecording ? "stop" : "play")
     }
 }
 
