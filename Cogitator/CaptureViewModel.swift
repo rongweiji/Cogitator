@@ -356,12 +356,16 @@ final class CaptureViewModel: ObservableObject {
         }
     }
 
-    private func selectRecordsForRecentContext(maxRecent: Int = 20, maxTotal: Int = 40, similarityThreshold: Double = 0.7) throws -> [CaptureRecord] {
+    private func selectRecordsForRecentContext(recentWindowSeconds: TimeInterval = 60, minRecent: Int = 5, maxRecentFallback: Int = 20, maxTotal: Int = 40, similarityThreshold: Double = 0.75) throws -> [CaptureRecord] {
         guard let storage else { return [] }
         let all = try storage.fetchAll().sorted(by: { $0.timestamp < $1.timestamp })
-        guard !all.isEmpty else { return [] }
+        guard let latestTimestamp = all.last?.timestamp else { return [] }
 
-        var recent = Array(all.suffix(maxRecent))
+        let cutoff = latestTimestamp.addingTimeInterval(-recentWindowSeconds)
+        var recent = all.filter { $0.timestamp >= cutoff }
+        if recent.count < minRecent {
+            recent = Array(all.suffix(maxRecentFallback))
+        }
         var selectedSet = Set(recent.map { ObjectIdentifier($0) })
         var selected = recent
 
