@@ -12,9 +12,13 @@ import SwiftData
 final class CaptureRecord {
     var timestamp: Date
     var content: String
+    var screenDescription: String?
+    var embeddingData: Data?
     
-    init(timestamp: Date, content: String) {
+    init(timestamp: Date, content: String, screenDescription: String? = nil, embeddingData: Data? = nil) {
         self.timestamp = timestamp
         self.content = content
+        self.screenDescription = screenDescription
+        self.embeddingData = embeddingData
     }
 }

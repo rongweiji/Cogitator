@@ -14,8 +14,8 @@ final class CaptureStorage {
         self.context = modelContext
     }
 
-    func save(content: String, timestamp: Date) throws {
-        let record = CaptureRecord(timestamp: timestamp, content: content)
+    func save(content: String, description: String?, embeddingData: Data?, timestamp: Date) throws {
+        let record = CaptureRecord(timestamp: timestamp, content: content, screenDescription: description, embeddingData: embeddingData)
         context.insert(record)
         try context.save()
     }

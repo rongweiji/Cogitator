@@ -4,6 +4,8 @@
 //
 
 import Foundation
+import ImageIO
+import UniformTypeIdentifiers
 
 struct XAIApiMessage: Codable {
     let role: String
@@ -91,5 +93,69 @@ final class XAIService {
         } catch {
             return .failure(error)
         }
+    }
+
+    func describeScreen(image: CGImage) async throws -> String {
+        let apiKey = try keychain.fetchKey()
+        guard let pngData = pngData(from: image) else {
+            throw NSError(domain: "XAIService", code: -3, userInfo: [NSLocalizedDescriptionKey: "Unable to encode screenshot"])
+        }
+        let base64 = pngData.base64EncodedString()
+
+        var request = URLRequest(url: baseURL)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+
+        let payload: [String: Any] = [
+            "model": "grok-4",
+            "stream": false,
+            "temperature": 0.2,
+            "messages": [
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "image_url",
+                            "image_url": [
+                                "url": "data:image/png;base64,\(base64)",
+                                "detail": "high"
+                            ]
+                        ],
+                        [
+                            "type": "text",
+                            "text": "You are inspecting a raw macOS screenshot. Explain concisely what the user is doing and their intent."
+                        ]
+                    ]
+                ]
+            ]
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let httpResponse = response as? HTTPURLResponse,
+              200..<300 ~= httpResponse.statusCode else {
+            let body = String(data: data, encoding: .utf8) ?? "No response body"
+            throw NSError(domain: "XAIService", code: (response as? HTTPURLResponse)?.statusCode ?? -1, userInfo: [NSLocalizedDescriptionKey: "API error: \(body)"])
+        }
+
+        let decoded = try JSONDecoder().decode(XAIApiResponse.self, from: data)
+        guard let content = decoded.choices.first?.message.content else {
+            throw NSError(domain: "XAIService", code: -2, userInfo: [NSLocalizedDescriptionKey: "Empty response"])
+        }
+        return content
+    }
+
+    private func pngData(from image: CGImage) -> Data? {
+        let data = NSMutableData()
+        guard let destination = CGImageDestinationCreateWithData(data, UTType.png.identifier as CFString, 1, nil) else {
+            return nil
+        }
+        CGImageDestinationAddImage(destination, image, nil)
+        guard CGImageDestinationFinalize(destination) else {
+            return nil
+        }
+        return data as Data
     }
 }

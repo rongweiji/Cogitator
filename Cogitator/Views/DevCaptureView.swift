@@ -8,7 +8,7 @@ import SwiftData
 
 struct DevCaptureView: View {
     @Environment(\.modelContext) private var modelContext
-    @StateObject private var viewModel = CaptureViewModel()
+    @StateObject private var viewModel = CaptureViewModel(autoClearsRecords: false)
 
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
@@ -52,6 +52,27 @@ struct DevCaptureView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(!viewModel.isRecording)
+
+                Button {
+                    viewModel.logRecordStats()
+                } label: {
+                    Label("Count Records", systemImage: "number")
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    viewModel.debugNearestEmbeddings()
+                } label: {
+                    Label("Nearest Embeddings", systemImage: "link")
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    viewModel.printEmbeddingClusters()
+                } label: {
+                    Label("Print Clusters", systemImage: "square.grid.3x3.fill")
+                }
+                .buttonStyle(.bordered)
             }
 
             Divider()

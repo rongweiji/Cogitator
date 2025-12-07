@@ -23,11 +23,15 @@ final class CaptureViewModel: ObservableObject {
     private let ocrService = OCRService()
     private var storage: CaptureStorage?
     private let llmService = LLMPipelineService()
+    private let xaiService = XAIService()
+    private let embeddingService = EmbeddingService()
+    private let autoClearsRecords: Bool
     private let isoFormatter: ISO8601DateFormatter
     private let logger = Logger(subsystem: "Cogitator", category: "CaptureViewModel")
     private var lastCapturedText = ""
 
-    init() {
+    init(autoClearsRecords: Bool = true) {
+        self.autoClearsRecords = autoClearsRecords
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         isoFormatter = formatter
@@ -58,7 +62,9 @@ final class CaptureViewModel: ObservableObject {
         Task {
             await screenRecorder.stop()
             await generatePrediction()
-            await clearStoredRecords()
+            if autoClearsRecords {
+                await clearStoredRecords()
+            }
         }
     }
 
@@ -73,8 +79,12 @@ final class CaptureViewModel: ObservableObject {
             }
             records.forEach { record in
                 let timestamp = isoFormatter.string(from: record.timestamp)
-                let flattened = record.content.replacingOccurrences(of: "\n", with: " ")
-                print("\(timestamp) | \(flattened)")
+                let text = record.content.replacingOccurrences(of: "\n", with: " ")
+                let description = record.screenDescription ?? "<none>"
+                let embeddingState = record.embeddingData != nil ? "Y" : "N"
+                print("\(timestamp) | content: \(text)")
+                print("   description: \(description)")
+                print("   embedding stored: \(embeddingState)")
             }
         } catch {
             logger.error("Failed to fetch records: \(error.localizedDescription, privacy: .public)")
@@ -104,6 +114,124 @@ final class CaptureViewModel: ObservableObject {
         }
     }
 
+    func logRecordStats() {
+        guard let storage else { return }
+        do {
+            let records = try storage.fetchAll()
+            let descriptionCount = records.filter { $0.screenDescription?.isEmpty == false }.count
+            let embeddingCount = records.filter { $0.embeddingData != nil }.count
+            logger.log("Records stored: \(records.count, privacy: .public)")
+            logger.log("Records with description: \(descriptionCount, privacy: .public)")
+            logger.log("Records with embedding: \(embeddingCount, privacy: .public)")
+        } catch {
+            logger.error("Failed to fetch stats: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    func debugNearestEmbeddings() {
+        guard let storage else { return }
+        do {
+            let records = try storage.fetchAll()
+            let decoded = records.compactMap { record -> (CaptureRecord, [Double])? in
+                guard let data = record.embeddingData,
+                      let vector = try? JSONDecoder().decode([Double].self, from: data) else {
+                    return nil
+                }
+                return (record, vector)
+            }
+
+            guard decoded.count >= 2 else {
+                logger.log("Not enough embeddings to compare.")
+                return
+            }
+
+            var bestPair: ((CaptureRecord, [Double]), (CaptureRecord, [Double]))?
+            var bestScore: Double = -1
+
+            for i in 0..<(decoded.count - 1) {
+                for j in (i + 1)..<decoded.count {
+                    let sim = cosine(decoded[i].1, decoded[j].1)
+                    if sim > bestScore {
+                        bestScore = sim
+                        bestPair = (decoded[i], decoded[j])
+                    }
+                }
+            }
+
+            guard let pair = bestPair else { return }
+            let formatted = String(format: "%.3f", bestScore)
+            logger.log("Closest embeddings similarity: \(formatted, privacy: .public)")
+            logger.log("Record A description: \(pair.0.0.screenDescription ?? "<none>", privacy: .public)")
+            logger.log("Record B description: \(pair.1.0.screenDescription ?? "<none>", privacy: .public)")
+        } catch {
+            logger.error("Failed to compute embedding similarity: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    private func cosine(_ a: [Double], _ b: [Double]) -> Double {
+        let dot = zip(a, b).reduce(0) { $0 + $1.0 * $1.1 }
+        let magA = sqrt(a.reduce(0) { $0 + $1 * $1 })
+        let magB = sqrt(b.reduce(0) { $0 + $1 * $1 })
+        guard magA > 0, magB > 0 else { return 0 }
+        return dot / (magA * magB)
+    }
+
+    func printEmbeddingClusters(threshold: Double = 0.85) {
+        guard let storage else { return }
+        do {
+            let records = try storage.fetchAll()
+            let decoded = records.compactMap { record -> (CaptureRecord, [Double])? in
+                guard let data = record.embeddingData,
+                      let vector = try? JSONDecoder().decode([Double].self, from: data) else {
+                    return nil
+                }
+                return (record, vector)
+            }
+
+            guard !decoded.isEmpty else {
+                logger.log("No embeddings stored.")
+                return
+            }
+
+            var clusters: [(records: [CaptureRecord], sum: [Double])] = []
+
+            for (record, vector) in decoded {
+                var bestIndex: Int?
+                var bestScore: Double = threshold
+
+                for (index, cluster) in clusters.enumerated() {
+                    let centroid = cluster.sum.map { $0 / Double(cluster.records.count) }
+                    let score = cosine(vector, centroid)
+                    if score >= bestScore {
+                        bestScore = score
+                        bestIndex = index
+                    }
+                }
+
+                if let idx = bestIndex {
+                    var cluster = clusters[idx]
+                    cluster.records.append(record)
+                    cluster.sum = zip(cluster.sum, vector).map(+)
+                    clusters[idx] = cluster
+                } else {
+                    clusters.append((records: [record], sum: vector))
+                }
+            }
+
+            logger.log("Formed \(clusters.count, privacy: .public) embedding clusters (threshold \(threshold, privacy: .public)).")
+            for (i, cluster) in clusters.enumerated() {
+                logger.log("Cluster \(i + 1, privacy: .public) (\(cluster.records.count, privacy: .public) items)")
+                cluster.records.sorted(by: { $0.timestamp < $1.timestamp }).forEach { record in
+                    let timestamp = isoFormatter.string(from: record.timestamp)
+                    let description = record.screenDescription ?? "<none>"
+                    logger.log("  \(timestamp, privacy: .public) -> \(description, privacy: .public)")
+                }
+            }
+        } catch {
+            logger.error("Failed to cluster embeddings: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
     func requestPrediction() {
         Task { await generatePrediction() }
     }
@@ -127,8 +255,24 @@ final class CaptureViewModel: ObservableObject {
             }
 
             lastCapturedText = trimmed
+            var descriptionText: String?
+            var embeddingData: Data?
+
+            do {
+                let describeStart = Date()
+                descriptionText = try await xaiService.describeScreen(image: image)
+                let describeDuration = Date().timeIntervalSince(describeStart)
+                print("[XAI] Image description in \(String(format: "%.2fs", describeDuration))")
+                if let descriptionText,
+                   let vector = embeddingService.embed(descriptionText) {
+                    embeddingData = try? JSONEncoder().encode(vector)
+                }
+            } catch {
+                logger.error("Image description failed: \(error.localizedDescription, privacy: .public)")
+            }
+
             if let storage {
-                try storage.save(content: text, timestamp: timestamp)
+                try storage.save(content: text, description: descriptionText, embeddingData: embeddingData, timestamp: timestamp)
             }
         } catch {
             logger.error("OCR failed: \(error.localizedDescription, privacy: .public)")
