@@ -1,7 +1,7 @@
 # Cogitator
 
 ### One-liner
-Constant thinking machine on your mac device, it see you see, say you want to say, faster than faster. 
+Constant thinking machine on your mac device, it see you see, say you want to say, faster than faster. This project was launched during an xAI hackathon.
 
 <img src="playstore.png" alt="Cogitator icon" width="180" />
 
