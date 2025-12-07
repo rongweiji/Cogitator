@@ -9,10 +9,12 @@ import Foundation
 import SwiftData
 
 @Model
-final class Item {
+final class CaptureRecord {
     var timestamp: Date
+    var content: String
     
-    init(timestamp: Date) {
+    init(timestamp: Date, content: String) {
         self.timestamp = timestamp
+        self.content = content
     }
 }
