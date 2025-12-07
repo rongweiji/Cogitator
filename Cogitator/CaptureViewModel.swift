@@ -61,7 +61,6 @@ final class CaptureViewModel: ObservableObject {
         isRecording = false
         Task {
             await screenRecorder.stop()
-            await generatePrediction()
             if autoClearsRecords {
                 await clearStoredRecords()
             }
@@ -233,7 +232,11 @@ final class CaptureViewModel: ObservableObject {
     }
 
     func requestPrediction() {
-        Task { await generatePrediction() }
+        Task { await generatePrediction(usingRecentContext: false) }
+    }
+
+    func requestPredictionFromRecentContext() {
+        Task { await generatePrediction(usingRecentContext: true) }
     }
 
     private func processFrame(_ image: CGImage) async {
@@ -293,7 +296,7 @@ final class CaptureViewModel: ObservableObject {
         }
     }
 
-    private func generatePrediction() async {
+    private func generatePrediction(usingRecentContext: Bool) async {
         guard !isGeneratingPrediction else { return }
         guard let storage else {
             logger.error("Storage not ready for LLM pipeline")
@@ -307,7 +310,12 @@ final class CaptureViewModel: ObservableObject {
         }
 
         do {
-            let records = try storage.fetchAll()
+            let records: [CaptureRecord]
+            if usingRecentContext {
+                records = try selectRecordsForRecentContext()
+            } else {
+                records = try storage.fetchAll()
+            }
             guard !records.isEmpty else {
                 await MainActor.run {
                     llmPrediction = "No OCR data captured yet."
@@ -346,5 +354,55 @@ final class CaptureViewModel: ObservableObject {
         await MainActor.run {
             isGeneratingPrediction = false
         }
+    }
+
+    private func selectRecordsForRecentContext(recentWindowSeconds: TimeInterval = 60, minRecent: Int = 5, maxRecentFallback: Int = 20, maxTotal: Int = 40, similarityThreshold: Double = 0.75) throws -> [CaptureRecord] {
+        guard let storage else { return [] }
+        let all = try storage.fetchAll().sorted(by: { $0.timestamp < $1.timestamp })
+        guard let latestTimestamp = all.last?.timestamp else { return [] }
+
+        let cutoff = latestTimestamp.addingTimeInterval(-recentWindowSeconds)
+        var recent = all.filter { $0.timestamp >= cutoff }
+        if recent.count < minRecent {
+            recent = Array(all.suffix(maxRecentFallback))
+        }
+        var selectedSet = Set(recent.map { ObjectIdentifier($0) })
+        var selected = recent
+
+        let recentVectors: [[Double]] = recent.compactMap { record in
+            guard let data = record.embeddingData else { return nil }
+            return try? JSONDecoder().decode([Double].self, from: data)
+        }
+
+        if !recentVectors.isEmpty {
+            var centroid = Array(recentVectors[0]).map { _ in 0.0 }
+            for vector in recentVectors {
+                centroid = zip(centroid, vector).map(+)
+            }
+            centroid = centroid.map { $0 / Double(recentVectors.count) }
+
+            let candidates = all.filter { !selectedSet.contains(ObjectIdentifier($0)) }
+            let scoredCandidates: [(CaptureRecord, Double)] = candidates.compactMap { record in
+                guard let data = record.embeddingData,
+                      let vector = try? JSONDecoder().decode([Double].self, from: data) else {
+                    return nil
+                }
+                let score = cosine(vector, centroid)
+                return (record, score)
+            }.sorted { $0.1 > $1.1 }
+
+            for (record, score) in scoredCandidates {
+                if selected.count >= maxTotal { break }
+                if score < similarityThreshold { break }
+                selected.append(record)
+                selectedSet.insert(ObjectIdentifier(record))
+            }
+        }
+
+        if selected.count > maxTotal {
+            selected = Array(selected.suffix(maxTotal))
+        }
+
+        return selected.sorted(by: { $0.timestamp < $1.timestamp })
     }
 }
