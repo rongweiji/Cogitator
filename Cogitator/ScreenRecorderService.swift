@@ -108,7 +108,7 @@ private final class StreamOutput: NSObject, SCStreamOutput {
     private let logger: Logger
     private let ciContext = CIContext()
     private let screenArea: Double
-    private let minChangeRatio: Double = 0.05
+    private let minChangeRatio: Double = 0.02
     private let debugLogging = true
     private let signatureDimension = 16
     private var lastSignature: [UInt8]?
@@ -191,14 +191,6 @@ private final class StreamOutput: NSObject, SCStreamOutput {
                 return FrameDecision(shouldProcess: false, metadataRatio: ratio)
             }
             return FrameDecision(shouldProcess: true, metadataRatio: ratio)
-        }
-
-        if debugLogging {
-            if let contentRect = attachments[.contentRect] as? CGRect {
-                logger.debug("Full refresh frame (content rect: \(contentRect.debugDescription, privacy: .public))")
-            } else {
-                logger.debug("Full refresh frame (no dirty rect metadata)")
-            }
         }
 
         return FrameDecision(shouldProcess: true, metadataRatio: nil)
